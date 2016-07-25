@@ -25,7 +25,7 @@
 					<_long>Enable snow by default.</_long>
 					<default>false</default>
 				</option>
-            </group>
+			</group>
 		</display>
 		<screen>
 			<group>
