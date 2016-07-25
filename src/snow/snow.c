@@ -516,12 +516,13 @@ snowInitScreen (CompPlugin *p,
     ss->snowTexturesLoaded = 0;
     ss->snowTex = NULL;
     ss->active = FALSE;
+    ss->displayListNeedsUpdate = FALSE;
     Bool      snowDefaultEnabled = snowGetDefaultEnabled (s->display);
     if (snowDefaultEnabled)
     {
     ss->active = TRUE;
+    ss->displayListNeedsUpdate = TRUE;
     }
-    ss->displayListNeedsUpdate = FALSE;
 
     ss->allSnowFlakes = snowFlake = malloc (numFlakes * sizeof (SnowFlake));
     if (!snowFlake)

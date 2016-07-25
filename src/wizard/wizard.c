@@ -1199,7 +1199,12 @@ wizardInitScreen (CompPlugin *p, CompScreen *s)
     WRAP (ws, s, donePaintScreen, wizardDonePaintScreen);
 
     ws->active = FALSE;
-
+    Bool      wizardDefaultEnabled = wizardGetDefaultEnabled (s->display);
+    if (wizardDefaultEnabled)
+    {
+    ws->active = TRUE;
+    }
+    
     ws->pollHandle = 0;
 
     ws->ps  = NULL;
