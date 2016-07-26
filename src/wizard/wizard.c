@@ -1244,7 +1244,6 @@ wizardDisplayOptionChanged (CompDisplay        *d,
 	    {
 		WIZARD_SCREEN (s);
 		ws->active = wizardGetDefaultEnabled(s->display);
-		ws->displayListNeedsUpdate = TRUE;
 		damageScreen (s);
 	    }
 	}
