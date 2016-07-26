@@ -49,7 +49,8 @@
 
 
 #include <compiz-core.h>
-#include "elements_options.h"
+#include "elements_options.h"
+
 #define GET_DISPLAY(d)                            \
 	((eDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
 
@@ -119,7 +120,8 @@ typedef struct _screen
 	Bool   needUpdate;
 	element *allElements;
 } screen;
-static void initiateElement (screen *eScreen, element *ele);
+
+static void initiateElement (screen *eScreen, element *ele);
 static void elementMove (CompDisplay *d, element *ele);
 static void setElementTexture (screen *eScreen, element  *ele);
 static void updateElementTextures (CompScreen *s, Bool changeTextures);
@@ -161,7 +163,7 @@ float bezierCurve(float p[4], float time, int type) {				//Used for Fireflies an
 }
 
 static void
-elementTestCreate ( screen *currentScreen, element *ele)		//If the Element is outside of screen boxing, it is recreated. Else, it's moved.
+elementTestCreate (screen *currentScreen, element *ele)		//If the Element is outside of screen boxing, it is recreated. Else, it's moved.
 {
 	if (ele->y >= currentScreen->cScreen->height + 200|| ele->x <= -200|| ele->x >= currentScreen->cScreen->width + 200||
 	ele->y >= currentScreen->cScreen->height + 200||
@@ -363,7 +365,8 @@ elementsFirefliesToggle (CompDisplay     *d,
 	Bool useKeys;
 	CompScreen *s;
 	for (s = d->screens; s; s = s->next)
- 	{		E_SCREEN (s);
+ 	{
+		E_SCREEN (s);
 		useKeys = eScreen->useKeys;
 		if (useKeys)
 		{
@@ -674,7 +677,8 @@ initiateElement (screen *eScreen,
 		}
 		ele->autumnAge[0] = getRand(0,MAX_AUTUMN_AGE-1);
 		ele->autumnAge[1] = getRand(0,(MAX_AUTUMN_AGE/2)-1);
-		ele->x  = mmRand (0, eScreen->cScreen->width, 1);		ele->autumnChange = 1;
+		ele->x  = mmRand (0, eScreen->cScreen->width, 1);
+		ele->autumnChange = 1;
 		ele->y  = -mmRand (100, BIG_NUMBER, 1);
 		ele->dy[0] = mmRand (-2, -1, 5);
 	}
@@ -775,7 +779,8 @@ updateElementTextures (CompScreen *s, Bool changeTextures)
 	float     ffSize = elementsGetFireflySize(s->display);
 	float     snowSize = elementsGetSnowSize(s->display);
 	float     starsSize = elementsGetStarsSize(s->display);
-	float     bubblesSize = elementsGetBubblesSize(s->display);	element *ele;
+	float     bubblesSize = elementsGetBubblesSize(s->display);
+	element *ele;
 
 	E_SCREEN (s);
 	E_DISPLAY (s->display);
@@ -817,7 +822,8 @@ updateElementTextures (CompScreen *s, Bool changeTextures)
 	eScreen->numTexLoaded[1] = 0;
 	eScreen->numTexLoaded[2] = 0;
 	eScreen->numTexLoaded[3] = 0;
-	eScreen->numTexLoaded[4] = 0;
+	eScreen->numTexLoaded[4] = 0;
+
 	eScreen->textu = calloc (1, sizeof (texture) * (ed->numTex[0] + ed->numTex[1] + ed->numTex[2] + ed->numTex[3] + ed->numTex[4]));
 	}
 	for (i = 0; i < ed->numTex[0]; i++)
@@ -1648,4 +1654,5 @@ getCompPluginInfo (void)
 {
     return &elementsVTable;
 }
-// Software is like sex. Sure, you can pay for it, but why would you?! //
+
+// Software is like sex. Sure, you can pay for it, but why would you?! //
