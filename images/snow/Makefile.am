@@ -1,7 +1,12 @@
 imagesdir = $(imagedir)/snow
 images_DATA =	        \
+	snow1-black.png \
+	snow1-inverse.png \
 	snow1.png \
+	snow2-black.png \
 	snow2.png \
+	snowflake-black.png \
+	snowflake-blurry-black.png \
 	snowflake-blurry.png \
 	snowflake-redo-black-mini.png \
 	snowflake-redo-black.png \
@@ -24,11 +29,17 @@ images_DATA =	        \
 	snowflake-solid-white-mini.png \
 	snowflake-solid-white.png \
 	snowflake.png \
+	stars1-black.png \
 	stars1.png
 
 EXTRA_DIST =	        \
+	snow1-black.png \
+	snow1-inverse.png \
 	snow1.png \
+	snow2-black.png \
 	snow2.png \
+	snowflake-black.png \
+	snowflake-blurry-black.png \
 	snowflake-blurry.png \
 	snowflake-redo-black-mini.png \
 	snowflake-redo-black.png \
@@ -51,4 +62,5 @@ EXTRA_DIST =	        \
 	snowflake-solid-white-mini.png \
 	snowflake-solid-white.png \
 	snowflake.png \
+	stars1-black.png \
 	stars1.png
