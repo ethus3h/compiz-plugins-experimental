@@ -70,7 +70,7 @@
 	  <option name="flyin_distance" type="float">
 	    <_short>Distance</_short>
 	    <_long>Distance to fly in</_long>
-	    <default>20</default>
+	    <default>10</default>
 	    <min>5</min>
 	    <max>1000</max>
 		<precision>0.01</precision>
