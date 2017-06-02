@@ -31,7 +31,7 @@
 				</option>
 				<option name="snow_speed" type="int">
 					<_short>Star Speed</_short>
-					<_long>Speed of travelling stars</_long>
+					<_long>Speed of traveling stars</_long>
 					<default>85</default>
 					<min>0</min>
 					<max>100</max>
@@ -104,6 +104,11 @@
 						<_name>Left to Right</_name>
 					</desc>
 				</option>
+				<option name="default_enabled" type="bool">
+					<_short>Enable by default</_short>
+					<_long>Enable snow by default.</_long>
+					<default>false</default>
+				</option>
 			</group>
 			<group>
 				<_short>Textures</_short>
@@ -135,7 +140,7 @@
 				<option name="toggle_key" type="key">
 					<_short>Stars Toggle</_short>
 					<_long>Stars toggle key</_long>
-					<default>&lt;Super&gt;F3</default>
+					<default>&lt;Super&gt;F5</default>
 				</option>
 			</group>
 		</display>

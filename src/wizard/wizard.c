@@ -707,6 +707,8 @@ genNewParticles (ParticleSystem *ps, Emitter *e)
     Particle *part = ps->particles;
     int i, j;
 
+    t = 0.0f;
+
     for (i = 0; i < ps->hardLimit && count > 0; i++, part++)
     {
 	if (part->t <= 0.0f)
@@ -1228,6 +1230,29 @@ wizardFiniScreen (CompPlugin *p, CompScreen *s)
     free (ws);
 }
 
+static void
+wizardDisplayOptionChanged (CompDisplay        *d,
+		CompOption         *opt,
+		WizardDisplayOptions num)
+{
+    switch (num)
+    {
+    case WizardDisplayOptionDefaultEnabled:
+	{
+	    CompScreen *s;
+	    for (s = d->screens; s; s = s->next)
+	    {
+		WIZARD_SCREEN (s);
+		ws->active = wizardGetDefaultEnabled(s->display);
+		damageScreen (s);
+	    }
+	}
+	break;
+    default:
+	break;
+    }
+}
+
 static Bool
 wizardInitDisplay (CompPlugin *p, CompDisplay *d)
 {
@@ -1262,6 +1287,7 @@ wizardInitDisplay (CompPlugin *p, CompDisplay *d)
 
     wizardSetInitiateInitiate (d, wizardInitiate);
     wizardSetInitiateTerminate (d, wizardTerminate);
+    wizardSetDefaultEnabledNotify (d, wizardDisplayOptionChanged);
 
     //Record the display
     d->base.privates[displayPrivateIndex].ptr = wd;

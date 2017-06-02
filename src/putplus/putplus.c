@@ -129,24 +129,6 @@ typedef struct _PutplusWindow
     Bool adjust;			/* animation flag           */
 } PutplusWindow;
 
-/*
- * Maximumize functions
- * This functions are from Maximumize plugin (Author:Kristian Lyngstøl  <kristian@bohemians.org>)
- */
-
-
-/* Returns true if rectangles a and b intersect by at least 40 in both directions
- */
-static Bool
-putplusSubstantialOverlap(XRectangle a,
-			  XRectangle b)
-{
-    if (a.x + a.width <= b.x + 40) return False;
-    if (b.x + b.width <= a.x + 40) return False;
-    if (a.y + a.height <= b.y + 40) return False;
-    if (b.y + b.height <= a.y + 40) return False;
-    return True;
-}
 
 /* Generates a region containing free space (here the
  * active window counts as free space). The region argument
@@ -160,7 +142,7 @@ putplusEmptyRegion (CompWindow *window,
     CompScreen *s = window->screen;
     CompWindow *w;
     Region     newRegion, tmpRegion;
-    XRectangle tmpRect, windowRect;
+    XRectangle tmpRect;
 
     newRegion = XCreateRegion ();
     if (!newRegion)
@@ -706,7 +688,7 @@ putplusInitiateCommon (CompDisplay     *d,
 	    {
 		/* user double-tapped the key, so use the screen work area */
 		workArea = s->workArea;
-		/* set the type to unknown to have a toggle-type behaviour
+		/* set the type to unknown to have a toggle-type behavior
 		   between 'use head's work area' and 'use screen work area' */
 		pd->lastType = PutplusUnknown;
 	    }
@@ -726,6 +708,7 @@ putplusInitiateCommon (CompDisplay     *d,
 		unsigned int   mask;
 		XWindowChanges xwc;
 
+		memset(&xwc, 0, sizeof (XWindowChanges));
 		mask = putplusComputeResize (w, &xwc, left,right,up,down);
 		if (mask)
 		{

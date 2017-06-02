@@ -19,6 +19,7 @@
  *
  */
 
+#include <string.h>
 #include <stdlib.h>
 #include <compiz-core.h>
 
@@ -42,15 +43,26 @@ StaticMode;
 
 typedef struct _StaticScreen
 {
+    int    windowPrivateIndex;
+
     PaintWindowProc             paintWindow;
+    AddWindowGeometryProc       addWindowGeometry;
+    DrawWindowTextureProc       drawWindowTexture;
+    DamageWindowRectProc        damageWindowRect;
     PaintOutputProc             paintOutput;
     ApplyScreenTransformProc    applyScreenTransform;
     PaintTransformedOutputProc  paintTransformedOutput;
     PreparePaintScreenProc      preparePaintScreen;
 
     StaticMode   staticMode;
+    Bool         active;
 }
 StaticScreen;
+
+typedef struct _StaticWindow
+{
+    FragmentAttrib fragment;
+} StaticWindow;
 
 #define GET_STATIC_DISPLAY(d) \
     ((StaticDisplay *) (d)->base.privates[displayPrivateIndex].ptr)
@@ -61,6 +73,13 @@ StaticScreen;
     ((StaticScreen *) (s)->base.privates[(sd)->screenPrivateIndex].ptr)
 #define STATIC_SCREEN(s) \
     StaticScreen *ss = GET_STATIC_SCREEN(s, GET_STATIC_DISPLAY(s->display))
+
+#define GET_STATIC_WINDOW(w, ss) \
+    ((StaticWindow *) (w)->base.privates[(ss)->windowPrivateIndex].ptr)
+#define STATIC_WINDOW(w)                                      \
+    StaticWindow *sw = GET_STATIC_WINDOW  (w,                    \
+                    GET_STATIC_SCREEN  (w->screen,            \
+                    GET_STATIC_DISPLAY (w->screen->display)))
 
 static Bool
 isStatic(CompWindow *w)
@@ -82,86 +101,6 @@ staticPreparePaintScreen (CompScreen *s,
     UNWRAP (ss, s, preparePaintScreen);
     (*s->preparePaintScreen) (s, msSinceLastPaint);
     WRAP (ss, s, preparePaintScreen, staticPreparePaintScreen);
-}
-
-static void
-staticPaintTransformedOutput (CompScreen              *s,
-                              const ScreenPaintAttrib *sAttrib,
-                              const CompTransform     *transform,
-                              Region                  region,
-                              CompOutput              *output,
-                              unsigned int            mask)
-{
-    STATIC_SCREEN(s);
-
-    /* We are now painting in transformed mode.
-     * Start painting only normal windows.
-     */
-    ss->staticMode = STATIC_NORMAL;
-
-    UNWRAP (ss, s, paintTransformedOutput);
-    (*s->paintTransformedOutput) (s, sAttrib, transform, region, output, mask);
-    WRAP (ss, s, paintTransformedOutput, staticPaintTransformedOutput);
-}
-
-static void
-staticApplyScreenTransform (CompScreen              *s,
-                            const ScreenPaintAttrib *sAttrib,
-                            CompOutput              *output,
-                            CompTransform           *transform)
-{
-    STATIC_SCREEN(s);
-
-    if (ss->staticMode == STATIC_STATIC)
-    {
-        applyScreenTransform (s, sAttrib, output, transform);
-    }
-    else
-    {
-        UNWRAP (ss, s, applyScreenTransform);
-        (*s->applyScreenTransform) (s, sAttrib, output, transform);
-        WRAP (ss, s, applyScreenTransform, staticApplyScreenTransform);
-    }
-}
-
-static Bool
-staticPaintOutput(CompScreen              *s,
-                  const ScreenPaintAttrib *sAttrib,
-                  const CompTransform     *transform,
-                  Region                  region,
-                  CompOutput              *output,
-                  unsigned int            mask)
-{
-    Bool status;
-
-    STATIC_SCREEN (s);
-
-    UNWRAP (ss, s, paintOutput);
-    status = (*s->paintOutput) (s, sAttrib, transform, region,
-                                output, mask);
-    WRAP (ss, s, paintOutput, staticPaintOutput);
-
-    if ( ss->staticMode == STATIC_NORMAL )
-    {
-        CompTransform sTransform;
-
-        /* We switched to Transformed mode somewhere along the line.
-         * Now paint the dock windows untransformed by bypassing
-         * the virtual table.
-         */
-        mask &= ~PAINT_SCREEN_CLEAR_MASK;
-
-        ss->staticMode = STATIC_STATIC;
-
-        matrixGetIdentity (&sTransform);
-
-        paintTransformedOutput (s, sAttrib, &sTransform, &s->region,
-                                output, mask);
-
-        ss->staticMode = STATIC_NORMAL;
-    }
-
-    return status;
 }
 
 
@@ -195,6 +134,171 @@ staticPaintWindow (CompWindow              *w,
     return status;
 }
 
+static void
+staticAddWindowGeometry (CompWindow *w,
+                         CompMatrix *matrix,
+                         int        nMatrix,
+                         Region     region,
+                         Region     clip)
+{
+    CompScreen *s = w->screen;
+    STATIC_SCREEN (s);
+
+    if (ss->staticMode == STATIC_STATIC && isStatic(w)) {
+        addWindowGeometry (w, matrix, nMatrix, region, clip);
+        return;
+    }
+
+    UNWRAP (ss, s, addWindowGeometry);
+    (*s->addWindowGeometry) (w, matrix, nMatrix, region, clip);
+    WRAP (ss, s, addWindowGeometry, staticAddWindowGeometry);
+}
+
+static void
+staticDrawWindowTexture (CompWindow              *w,
+                         CompTexture          *texture,
+                         const FragmentAttrib *fragment,
+                         unsigned int         mask)
+{
+    CompScreen *s = w->screen;
+    STATIC_SCREEN (s);
+
+    if (ss->staticMode == STATIC_ALL && isStatic(w)) {
+
+        STATIC_WINDOW (w);
+        memcpy(&sw->fragment, fragment, sizeof (FragmentAttrib));
+    }
+
+    if (ss->staticMode == STATIC_STATIC && !isStatic(w))
+    {
+        /* We are not painting normal windows */
+        return;
+    }
+    if (ss->staticMode == STATIC_NORMAL && isStatic(w))
+    {
+        /* We are not painting static windows */
+        return;
+    }
+
+    if (ss->staticMode == STATIC_STATIC && isStatic(w)) {
+        STATIC_WINDOW (w);
+        drawWindowTexture (w, texture, &sw->fragment, mask);
+    } else {
+        UNWRAP (ss, s, drawWindowTexture);
+        (*s->drawWindowTexture) (w, texture, fragment, mask);
+        WRAP (ss, s, drawWindowTexture, staticDrawWindowTexture);
+    }
+}
+
+static Bool
+staticDamageWindowRect (CompWindow *w,
+                        Bool       initial,
+                        BoxPtr     rect)
+{
+    CompScreen *s = w->screen;
+    Bool status;
+
+    STATIC_SCREEN (s);
+
+    UNWRAP (ss, s, damageWindowRect);
+    status = (*s->damageWindowRect) (w, initial, rect);
+    WRAP (ss, s, damageWindowRect, staticDamageWindowRect);
+
+    damageScreen (s);
+
+    return status;
+}
+
+static void
+staticApplyScreenTransform (CompScreen              *s,
+                            const ScreenPaintAttrib *sAttrib,
+                            CompOutput              *output,
+                            CompTransform           *transform)
+{
+    STATIC_SCREEN(s);
+
+    if (ss->staticMode == STATIC_STATIC)
+    {
+        applyScreenTransform (s, sAttrib, output, transform);
+    }
+    else
+    {
+        UNWRAP (ss, s, applyScreenTransform);
+        (*s->applyScreenTransform) (s, sAttrib, output, transform);
+        WRAP (ss, s, applyScreenTransform, staticApplyScreenTransform);
+    }
+}
+
+static void
+staticPaintTransformedOutput (CompScreen              *s,
+                              const ScreenPaintAttrib *sAttrib,
+                              const CompTransform     *transform,
+                              Region                  region,
+                              CompOutput              *output,
+                              unsigned int            mask)
+{
+    STATIC_SCREEN(s);
+
+    /* We are now painting in transformed mode.
+     * Start painting only normal windows.
+     */
+    ss->staticMode = STATIC_NORMAL;
+
+    UNWRAP (ss, s, paintTransformedOutput);
+    (*s->paintTransformedOutput) (s, sAttrib, transform, region, output, mask);
+    WRAP (ss, s, paintTransformedOutput, staticPaintTransformedOutput);
+}
+
+static Bool
+staticPaintOutput(CompScreen              *s,
+                  const ScreenPaintAttrib *sAttrib,
+                  const CompTransform     *transform,
+                  Region                  region,
+                  CompOutput              *output,
+                  unsigned int            mask)
+{
+    Bool status;
+
+    STATIC_SCREEN (s);
+
+    UNWRAP (ss, s, paintOutput);
+    status = (*s->paintOutput) (s, sAttrib, transform, region,
+                                output, mask);
+    WRAP (ss, s, paintOutput, staticPaintOutput);
+
+    if ( ss->staticMode == STATIC_NORMAL )
+    {
+        CompTransform sTransform;
+
+        /* We switched to Transformed mode somewhere along the line.
+         * Now paint the dock windows untransformed by bypassing
+         * the virtual table.
+         */
+        mask &= ~PAINT_SCREEN_CLEAR_MASK;
+
+        ss->staticMode = STATIC_STATIC;
+
+        matrixGetIdentity (&sTransform);
+
+        if (!ss->active)
+        {
+            WRAP (ss, s, damageWindowRect, staticDamageWindowRect);
+            ss->active = TRUE;
+        }
+
+        paintTransformedOutput (s, sAttrib, &sTransform, &s->region,
+                                output, mask);
+
+        ss->staticMode = STATIC_NORMAL;
+    } else if (ss->active)
+    {
+        UNWRAP (ss, s, damageWindowRect);
+        ss->active = FALSE;
+    }
+
+    return status;
+}
+
 
 static Bool
 staticInitScreen (CompPlugin *p,
@@ -209,11 +313,23 @@ staticInitScreen (CompPlugin *p,
     if (!ss)
         return FALSE;
 
+    ss->windowPrivateIndex = allocateWindowPrivateIndex (s);
+
+    if (ss->windowPrivateIndex < 0)
+    {
+        free (ss);
+        return FALSE;
+    }
+
+    ss->active = FALSE;
+
     WRAP (ss, s, paintWindow, staticPaintWindow);
     WRAP (ss, s, paintOutput, staticPaintOutput);
+    WRAP (ss, s, addWindowGeometry, staticAddWindowGeometry);
+    WRAP (ss, s, drawWindowTexture, staticDrawWindowTexture);
+    WRAP (ss, s, preparePaintScreen, staticPreparePaintScreen);
     WRAP (ss, s, applyScreenTransform, staticApplyScreenTransform);
     WRAP (ss, s, paintTransformedOutput, staticPaintTransformedOutput);
-    WRAP (ss, s, preparePaintScreen, staticPreparePaintScreen);
 
     s->base.privates[sd->screenPrivateIndex].ptr = ss;
 
@@ -226,9 +342,13 @@ staticFiniScreen (CompPlugin *p,
 {
     STATIC_SCREEN (s);
 
-    UNWRAP (ss, s, preparePaintScreen);
+    freeWindowPrivateIndex (s, ss->windowPrivateIndex);
+
     UNWRAP (ss, s, paintTransformedOutput);
     UNWRAP (ss, s, applyScreenTransform);
+    UNWRAP (ss, s, preparePaintScreen);
+    UNWRAP (ss, s, drawWindowTexture);
+    UNWRAP (ss, s, addWindowGeometry);
     UNWRAP (ss, s, paintOutput);
     UNWRAP (ss, s, paintWindow);
 
@@ -271,6 +391,34 @@ staticFiniDisplay (CompPlugin *p,
 }
 
 static Bool
+staticInitWindow (CompPlugin *p,
+                  CompWindow *w)
+{
+    StaticWindow *sw;
+
+    STATIC_SCREEN (w->screen);
+
+    sw = malloc (sizeof (StaticWindow));
+    if (!sw)
+        return FALSE;
+
+    initFragmentAttrib (&sw->fragment, &w->paint);
+
+    w->base.privates[ss->windowPrivateIndex].ptr = sw;
+
+    return TRUE;
+}
+
+static void
+staticFiniWindow (CompPlugin *p,
+                  CompWindow *w)
+{
+    STATIC_WINDOW (w);
+
+    free (sw);
+}
+
+static Bool
 staticInit (CompPlugin *p)
 {
     displayPrivateIndex = allocateDisplayPrivateIndex();
@@ -295,7 +443,8 @@ staticInitObject (CompPlugin *p,
     static InitPluginObjectProc dispTab[] = {
 	(InitPluginObjectProc) 0, /* InitCore */
 	(InitPluginObjectProc) staticInitDisplay,
-	(InitPluginObjectProc) staticInitScreen
+	(InitPluginObjectProc) staticInitScreen,
+	(InitPluginObjectProc) staticInitWindow
     };
 
     RETURN_DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), TRUE, (p, o));
@@ -308,7 +457,8 @@ staticFiniObject (CompPlugin *p,
     static FiniPluginObjectProc dispTab[] = {
 	(FiniPluginObjectProc) 0, /* FiniCore */
 	(FiniPluginObjectProc) staticFiniDisplay,
-	(FiniPluginObjectProc) staticFiniScreen
+	(FiniPluginObjectProc) staticFiniScreen,
+	(FiniPluginObjectProc) staticFiniWindow
     };
 
     DISPATCH (o, dispTab, ARRAY_SIZE (dispTab), (p, o));

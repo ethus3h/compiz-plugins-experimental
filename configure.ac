@@ -1,6 +1,6 @@
 AC_PREREQ(2.57)
 
-AC_INIT([compiz-plugins-experimental], [0.8.12], [chat-to-me@raveit.de])
+AC_INIT([compiz-plugins-experimental], [0.8.15], [chat-to-me@raveit.de])
 AM_INIT_AUTOMAKE([1.9 foreign dist-xz no-dist-gzip check-news])
 AC_CONFIG_HEADER([config.h])
 AM_MAINTAINER_MODE
@@ -14,9 +14,8 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h sys/time.h unistd.h])
 IT_PROG_INTLTOOL([0.35.0])
 AC_CONFIG_MACRO_DIR([m4])
-AC_SUBST(ALL_LINGUAS)
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.17])
+AM_GNU_GETTEXT_VERSION([0.19])
 GETTEXT_PACKAGE=compiz-plugins-experimental
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE", [Gettext package.])
 AC_SUBST(GETTEXT_PACKAGE)
@@ -150,9 +149,17 @@ AM_CONDITIONAL(ANIMATIONSIM_PLUGIN, test "x$have_compiz_animation" = "xyes")
 PKG_CHECK_MODULES(COMPIZANIMATIONADDON, compiz-animationaddon, [have_compiz_animationaddon=yes], [have_compiz_animationaddon=no])
 AM_CONDITIONAL(ANIMATIONPLUS_PLUGIN, test "x$have_compiz_animationaddon" = "xyes")
 
+PKG_CHECK_MODULES(GLEW, glew, [have_glew=yes], [have_glew=no])
+PKG_CHECK_MODULES(LIBCURL, libcurl, [have_libcurl=yes], [have_libcurl=no])
+AM_CONDITIONAL(EARTH_PLUGIN, test "x$have_glew" = "xyes" && test "x$have_libcurl" = "xyes")
+
 AC_OUTPUT([
 Makefile
+data/Makefile
+data/earth/Makefile
 images/Makefile
+images/boing/Makefile
+images/earth/Makefile
 images/elements/Makefile
 images/fireflies/Makefile
 images/snow/Makefile
@@ -162,8 +169,10 @@ metadata/Makefile
 src/Makefile
 src/anaglyph/Makefile
 src/atlantis/Makefile
+src/boing/Makefile
 src/cubemodel/Makefile
 src/dialog/Makefile
+src/earth/Makefile
 src/elements/Makefile
 src/extra-animations/Makefile
 src/fakeargb/Makefile

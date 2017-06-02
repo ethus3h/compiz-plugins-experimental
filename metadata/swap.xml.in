@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <compiz>
     <plugin name="swap" useBcop="true">
 	<_short>Swap Windows</_short>
@@ -102,7 +103,7 @@
 	</display>
 	<screen>
 	    <group>
-		<_short>Behaviour</_short>
+		<_short>Behavior</_short>
 		<option name="speed" type="float">
 		    <_short>Speed</_short>
 		    <_long>Switcher speed</_long>
